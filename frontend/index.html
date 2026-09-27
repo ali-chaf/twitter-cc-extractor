@@ -3,46 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Twitter CC Extractor</title>
+
+    <title>Twitter/X CC Extractor</title>
+
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            min-height: 100vh;
+            font-family: Arial, sans-serif;
+            background: #0f1115;
+            color: #ffffff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            width: 100%;
+            max-width: 700px;
+            text-align: center;
+        }
+
+        .logo {
+            font-size: 42px;
+            margin-bottom: 10px;
+        }
+
+        h1 {
+            margin: 0;
+            font-size: 32px;
+        }
+
+        .subtitle {
+            color: #9ca3af;
+            margin: 12px 0 30px;
+            font-size: 16px;
+        }
+
+        .card {
+            background: #181b21;
+            border: 1px solid #292d35;
+            border-radius: 16px;
+            padding: 24px;
+            box-shadow: 0 15px 40px rgba(0, 0, 0, 0.3);
+        }
+
+        .input-row {
+            display: flex;
+            gap: 10px;
+        }
+
+        input {
+            flex: 1;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #363b45;
+            background: #0f1115;
+            color: white;
+            font-size: 15px;
+            outline: none;
+        }
+
+        input:focus {
+            border-color: #1d9bf0;
+        }
+
+        button {
+            padding: 15px 22px;
+            border: none;
+            border-radius: 10px;
+            background: #1d9bf0;
+            color: white;
+            font-size: 15px;
+            font-weight: bold;
+            cursor: pointer;
+        }
+
+        button:hover {
+            opacity: 0.9;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+
+        .status {
+            margin-top: 20px;
+            color: #9ca3af;
+            min-height: 20px;
+        }
+
+        .result-box {
+            margin-top: 20px;
+            text-align: left;
+            display: none;
+        }
+
+        .result-box textarea {
+            width: 100%;
+            min-height: 220px;
+            resize: vertical;
+            padding: 15px;
+            border-radius: 10px;
+            border: 1px solid #363b45;
+            background: #0f1115;
+            color: #ffffff;
+            font-family: Arial, sans-serif;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .copy-button {
+            margin-top: 10px;
+            background: #2ea043;
+        }
+
+        @media (max-width: 600px) {
+            .input-row {
+                flex-direction: column;
+            }
+
+            button {
+                width: 100%;
+            }
+
+            h1 {
+                font-size: 26px;
+            }
+        }
+    </style>
 </head>
+
 <body>
+
+<div class="container">
+
+    <div class="logo">CC</div>
 
     <h1>Twitter/X CC Extractor</h1>
 
-    <input
-        type="text"
-        id="url"
-        placeholder="Paste Twitter/X video URL"
-    >
+    <p class="subtitle">
+        Extract the spoken captions from Twitter/X videos.
+    </p>
 
-    <button onclick="extractCC()">Extract CC</button>
+    <div class="card">
 
-    <pre id="result"></pre>
+        <div class="input-row">
+            <input
+                type="text"
+                id="url"
+                placeholder="Paste Twitter/X video URL..."
+            >
 
-    <script>
-        async function extractCC() {
-            const url = document.getElementById("url").value;
-            const result = document.getElementById("result");
+            <button id="extractButton" onclick="extractCC()">
+                Extract CC
+            </button>
+        </div>
 
-            result.textContent = "Processing...";
+        <div class="status" id="status"></div>
 
-            try {
-                const response = await fetch("https://7ades.pythonanywhere.com/extract", {
-                    method: "POST",
-                    headers: {
-                        "Content-Type": "application/json"
-                    },
-                    body: JSON.stringify({ url: url })
-                });
+        <div class="result-box" id="resultBox">
 
-                const data = await response.json();
+            <textarea id="result" readonly></textarea>
 
-                result.textContent = data.message || data.error;
-            } catch (error) {
-                result.textContent = "Error connecting to backend.";
+            <button class="copy-button" onclick="copyText()">
+                Copy Text
+            </button>
+
+        </div>
+
+    </div>
+
+</div>
+
+<script>
+
+async function extractCC() {
+
+    const url = document.getElementById("url").value.trim();
+    const button = document.getElementById("extractButton");
+    const status = document.getElementById("status");
+    const resultBox = document.getElementById("resultBox");
+    const result = document.getElementById("result");
+
+    if (!url) {
+        status.textContent = "Please enter a Twitter/X video URL.";
+        return;
+    }
+
+    button.disabled = true;
+    button.textContent = "Extracting...";
+    status.textContent = "Processing video...";
+    resultBox.style.display = "none";
+
+    try {
+
+        const response = await fetch(
+            "https://7ades.pythonanywhere.com/extract",
+            {
+                method: "POST",
+
+                headers: {
+                    "Content-Type": "application/json"
+                },
+
+                body: JSON.stringify({
+                    url: url
+                })
             }
+        );
+
+        const data = await response.json();
+
+        if (data.error) {
+            status.textContent = data.error;
+        } else {
+            status.textContent = "Done.";
+            result.value = data.message || "";
+            resultBox.style.display = "block";
         }
-    </script>
+
+    } catch (error) {
+
+        status.textContent =
+            "Could not connect to the backend.";
+
+    } finally {
+
+        button.disabled = false;
+        button.textContent = "Extract CC";
+
+    }
+}
+
+
+function copyText() {
+
+    const result = document.getElementById("result");
+
+    navigator.clipboard.writeText(result.value);
+
+    document.getElementById("status").textContent =
+        "Copied to clipboard.";
+
+}
+
+</script>
 
 </body>
 </html>
